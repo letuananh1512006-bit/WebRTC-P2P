@@ -1,0 +1,25 @@
+{
+  "name": "webrtc-server",
+  "version": "1.0.0",
+  "description": "WebRTC P2P Mesh signaling server",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "test": "tsx src/room-manager.test.ts && tsx src/signaling.test.ts",
+    "test:multi": "tsx src/multi-client.test.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
