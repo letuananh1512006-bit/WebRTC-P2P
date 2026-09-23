@@ -1,0 +1,327 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>WebRTC P2P Video Meeting</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-surface": "#181c20",
+            "primary-fixed": "#d8e2ff",
+            "background": "#f7f9ff",
+            "tertiary-fixed-dim": "#73dc82",
+            "surface-dim": "#d7dae0",
+            "on-surface-variant": "#414754",
+            "surface-tint": "#005bc0",
+            "on-error": "#ffffff",
+            "surface-container-low": "#f1f4fa",
+            "tertiary-fixed": "#8ffa9b",
+            "on-secondary-fixed": "#410001",
+            "primary-fixed-dim": "#adc7ff",
+            "on-secondary-container": "#fffbff",
+            "outline-variant": "#c1c6d6",
+            "secondary-container": "#d9372b",
+            "primary-container": "#1a73e8",
+            "surface-container": "#ebeef4",
+            "primary": "#005bbf",
+            "secondary": "#b51b15",
+            "on-secondary": "#ffffff",
+            "inverse-surface": "#2d3135",
+            "on-secondary-fixed-variant": "#930004",
+            "outline": "#727785",
+            "error-container": "#ffdad6",
+            "on-primary-container": "#ffffff",
+            "secondary-fixed-dim": "#ffb4a9",
+            "error": "#ba1a1a",
+            "surface-container-lowest": "#ffffff",
+            "on-primary-fixed-variant": "#004493",
+            "surface": "#f7f9ff",
+            "on-background": "#181c20",
+            "on-tertiary-fixed-variant": "#00531e",
+            "surface-container-highest": "#dfe3e8",
+            "surface-container-high": "#e5e8ee",
+            "secondary-fixed": "#ffdad5",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed": "#001a41",
+            "on-tertiary-container": "#000701",
+            "on-tertiary-fixed": "#002108",
+            "tertiary-container": "#16893a",
+            "surface-variant": "#dfe3e8",
+            "on-error-container": "#93000a",
+            "on-primary": "#ffffff",
+            "inverse-on-surface": "#eef1f7",
+            "inverse-primary": "#adc7ff",
+            "surface-bright": "#f7f9ff",
+            "tertiary": "#006d2a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline-xl-mobile": ["Inter"],
+            "label-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-lg": ["Inter"],
+            "headline-xl": ["Inter"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .status-pulse {
+      animation: pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface antialiased min-h-screen flex flex-col font-sans selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Top Navigation Bar (Consistent with Brand Anchors & Google Meet style) -->
+<header class="w-full border-b border-surface-container-high bg-surface-container-lowest sticky top-0 z-30 transition-shadow">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+<!-- Brand Logo / Project Title -->
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary shadow-sm shadow-primary/20">
+<span class="material-symbols-outlined text-[22px]" data-icon="videocam">videocam</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="text-on-surface text-lg font-bold tracking-tight">WebRTC P2P</span>
+<span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed-variant">
+              Mesh Demo
+            </span>
+</div>
+</div>
+</div>
+<!-- Live Meta Info & Controls -->
+<div class="flex items-center gap-4 sm:gap-6 text-sm">
+<!-- Live Clock Indicator (Google Meet Style) -->
+<div class="hidden md:flex items-center text-on-surface-variant font-medium" id="liveClock">Wed, Sep 23 • 11:32 PM</div>
+<!-- Signaling Server Status Badge -->
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/50">
+<span class="size-2 rounded-full bg-tertiary-container status-pulse"></span>
+<span class="text-xs sm:text-sm font-medium text-on-surface">Signaling: <span class="text-tertiary font-semibold">Connected</span></span>
+</div>
+<!-- Academic Tag Button -->
+<div class="hidden lg:flex items-center">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-surface-container text-on-surface-variant border border-outline-variant/40">
+<span class="material-symbols-outlined text-[16px]" data-icon="school">school</span>
+            CS Capstone
+          </span>
+</div>
+<!-- User / Peer Avatar -->
+<div class="relative group">
+<div class="size-9 rounded-full bg-primary-container text-on-primary font-semibold flex items-center justify-center text-sm shadow-sm ring-2 ring-primary-fixed-dim/40 cursor-pointer">
+<span class="">ST</span>
+</div>
+<span class="absolute bottom-0 right-0 size-2.5 rounded-full bg-tertiary-container ring-2 ring-white"></span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Hero Layout -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16 flex flex-col justify-center">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 items-center">
+<!-- Left Column: Primary Copy & Action Input Controls -->
+<div class="lg:col-span-6 flex flex-col gap-6 text-left">
+<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-fixed/50 text-on-primary-fixed-variant text-xs font-semibold max-w-fit">
+<span class="material-symbols-outlined text-[16px]" data-icon="bolt">bolt</span>
+          Zero Relay Media Server Architecture
+        </div>
+<div class="space-y-4">
+<h1 class="text-on-surface text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12]">
+            WebRTC P2P <br>
+<span class="text-primary-container">Video Meeting</span>
+</h1>
+<p class="text-on-surface-variant text-base sm:text-lg max-w-xl leading-relaxed">
+            Simple peer-to-peer video meetings powered by WebRTC. Direct mesh connection with low latency, zero intermediate media relay, and native browser APIs.
+          </p>
+</div>
+<!-- Meeting Actions (Google Meet Standard Style) -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+<!-- Instant Meeting Action -->
+<a class="inline-flex items-center justify-center gap-2.5 h-12 px-6 rounded-xl bg-primary-container text-on-primary hover:bg-primary transition-all duration-150 font-semibold shadow-md shadow-primary-container/25 active:scale-[0.98]" href="#join-flow" id="instantMeetingBtn">
+<span class="material-symbols-outlined text-[20px]" data-icon="video_call">video_call</span>
+<span class="">Create / Join Meeting</span>
+</a>
+<!-- Code or Link Input Group -->
+<div class="flex-1 flex items-center h-12 px-3.5 rounded-xl border border-outline-variant/80 bg-surface-container-low hover:border-outline focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/20 transition-all">
+<span class="material-symbols-outlined text-outline mr-2 text-[20px]" data-icon="keyboard">keyboard</span>
+<input class="w-full bg-transparent border-0 p-0 text-sm text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" id="roomCodeInput" placeholder="Enter a code or link" type="text">
+<button class="text-sm font-semibold text-primary-container hover:text-primary px-2 py-1 rounded transition-colors disabled:text-outline disabled:cursor-not-allowed" id="submitCodeBtn" type="button">
+              Join
+            </button>
+</div>
+</div>
+<!-- Subtext reassurance -->
+<div class="flex items-center gap-2 text-xs text-on-surface-variant pt-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="lock">lock</span>
+<span class="">End-to-end peer encrypted streams via DTLS-SRTP negotiation</span>
+</div>
+</div>
+<!-- Right Column: Interactive Meeting Canvas / Preview Illustration -->
+<div class="lg:col-span-6">
+<div class="relative mx-auto w-full max-w-lg lg:max-w-none">
+<!-- Subtle Glow Background Pill -->
+<div class="absolute -inset-1.5 bg-gradient-to-r from-primary-fixed-dim/40 via-tertiary-fixed-dim/20 to-primary-container/20 rounded-3xl blur-xl opacity-70"></div>
+<!-- Main Meeting Preview Card -->
+<div class="relative bg-surface-container-lowest border border-outline-variant/60 rounded-2xl shadow-xl shadow-surface-dim/40 overflow-hidden p-4 sm:p-5">
+<!-- Window Bar -->
+<div class="flex items-center justify-between pb-3.5 mb-3 border-b border-surface-container">
+<div class="flex items-center gap-2">
+<span class="size-3 rounded-full bg-secondary-container"></span>
+<span class="size-3 rounded-full bg-surface-dim"></span>
+<span class="size-3 rounded-full bg-tertiary-container"></span>
+<span class="ml-2 text-xs font-semibold text-on-surface-variant">Mesh Room: #mesh-lab-401</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 text-[11px] font-bold text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full">
+<span class="size-1.5 rounded-full bg-tertiary-container"></span> 3 Peers Connected
+                </span>
+</div>
+</div>
+<!-- Video Tiles Mockup (Google Meet Grid Style) -->
+<div class="grid grid-cols-2 gap-3 aspect-[16/10]">
+<!-- Tile 1 (Local Peer) -->
+<div class="relative rounded-xl overflow-hidden bg-surface-container-high border border-surface-container-highest flex items-center justify-center group">
+<img class="w-full h-full object-cover" data-alt="Modern high key portrait of a university student looking at a webcam in a bright clean library setting with soft natural light and subtle tech elements matching a blue and white minimal interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYUAnTauPDD1Ea9pWMCux-KqZf5_X4MIt54lLGrt6z5qARe-bGFEVP7K0sxAqW7ct0fF-bU6fyGrlzbHwDRKd6A2gYU1WvKIYVZLQ5aIjDfecFRTddUTWvhFFEN7QrlTHPQhfLqz13dhBxjctEZu5VeZjaI2bNZDUK78LSsf8KzG6IIrm-XH6EPIFN9LqlyULlPAwDVo7nTUIh-6FqhgfjoCFYMsv0xYLQ-6hoDZHgvgjzNxCEQCls">
+<!-- Overlaid Tag -->
+<div class="absolute bottom-2 left-2 flex items-center gap-1.5 bg-inverse-surface/80 backdrop-blur-sm text-inverse-on-surface text-[11px] font-medium px-2 py-0.5 rounded-md">
+<span class="">You (Presenter)</span>
+<span class="material-symbols-outlined text-[13px] text-tertiary-fixed" data-icon="mic">mic</span>
+</div>
+<!-- Latency Badge -->
+<div class="absolute top-2 right-2 bg-inverse-surface/75 text-inverse-on-surface text-[10px] px-1.5 py-0.5 rounded font-mono">
+                  12ms RTT
+                </div>
+</div>
+<!-- Tile 2 (Remote Peer 1) -->
+<div class="relative rounded-xl overflow-hidden bg-surface-container-high border border-surface-container-highest flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Young female software engineering researcher in a modern bright research lab with white walls and warm friendly lighting captured in a neat video conference call frame." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDemkG14uPktAMtfILjHc1TMTVkeQ7aCzTmxDlQuGmWa4n36YoUEjFCMO1xdGUwNpvsdXYccSKyrVj7-lTxpL9uPyICr2Kf3qUrxU7LgaHX2R1e_R7WmZ7M0BrIf2YKYVes2PywZ6EGARoh07s84dfL5y_wMvAG6ICozjK5pXORUyF_6Pv5115pL3-tXwSW-altmWgyHFUwgT3ogAtlIyLet6GoYHu7_Fl0mC17xHJyZs5ONbLN6p7Y">
+<div class="absolute bottom-2 left-2 flex items-center gap-1.5 bg-inverse-surface/80 backdrop-blur-sm text-inverse-on-surface text-[11px] font-medium px-2 py-0.5 rounded-md">
+<span class="">Elena Vance</span>
+<span class="material-symbols-outlined text-[13px] text-tertiary-fixed" data-icon="mic">mic</span>
+</div>
+<!-- Audio Wave Visualizer -->
+<div class="absolute top-2 right-2 flex items-center gap-0.5 bg-inverse-surface/75 px-1.5 py-1 rounded">
+<span class="w-0.5 h-3 bg-tertiary-fixed rounded-full animate-pulse"></span>
+<span class="w-0.5 h-2 bg-tertiary-fixed rounded-full animate-pulse"></span>
+<span class="w-0.5 h-4 bg-tertiary-fixed rounded-full animate-pulse"></span>
+</div>
+</div>
+<!-- Tile 3 (Remote Peer 2) -->
+<div class="relative rounded-xl overflow-hidden bg-surface-container-high border border-surface-container-highest col-span-2 flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="Computer science team workspace with two developers collaborating near a whiteboard with networking diagrams in an open sunlight-filled studio under crisp minimal illumination." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyhjp60eEREvlSliF34Px81ZlHt6P2oMcJCPutbtRtomatIytTsy6Gxkvg4fTKF5LWSrkWVY5Nh-72Yq9LFMzHF4MmVB57MpojJX0dG4l6pXL76Ccx03CqK3HDoh3kv3W5KQHc0oTrC6e4IouD5ZOy2-2HULPACeOSF-0IGvuQdkM52JRJs4u7zovxDKzIGR14vKtYyI4_wRI-T7Hl1oqaOyTDAqYsfXv4KpoavYsh5w5KCnF4WvBk">
+<div class="absolute bottom-2 left-2 flex items-center gap-1.5 bg-inverse-surface/80 backdrop-blur-sm text-inverse-on-surface text-[11px] font-medium px-2 py-0.5 rounded-md">
+<span class="">Faculty Lab Terminal</span>
+<span class="material-symbols-outlined text-[13px] text-tertiary-fixed" data-icon="mic">mic</span>
+</div>
+<div class="absolute bottom-2 right-2 flex items-center gap-1 bg-inverse-surface/80 backdrop-blur-sm text-inverse-on-surface text-[10px] px-2 py-0.5 rounded-md">
+<span class="material-symbols-outlined text-[12px] text-primary-fixed" data-icon="screen_share">screen_share</span>
+<span class="">1080p 60fps</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Floating Bar Mockup -->
+<div class="mt-3.5 pt-3 border-t border-surface-container flex items-center justify-center gap-3">
+<button class="size-10 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="mic">mic</span>
+</button>
+<button class="size-10 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="videocam">videocam</span>
+</button>
+<button class="size-10 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="present_to_all">present_to_all</span>
+</button>
+<button class="size-10 rounded-full bg-secondary-container text-on-secondary flex items-center justify-center hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[20px]" data-icon="call_end">call_end</span>
+</button>
+</div>
+</div>
+<!-- Decorative Floating Card: Signaling Latency -->
+<div class="absolute -bottom-5 -left-4 bg-surface-container-lowest/95 backdrop-blur border border-outline-variant/70 shadow-lg rounded-xl p-3 flex items-center gap-3 hidden sm:flex">
+<div class="size-8 rounded-lg bg-tertiary-container/15 text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]" data-icon="swap_horiz">swap_horiz</span>
+</div>
+<div>
+<p class="text-xs font-bold text-on-surface">P2P Mesh Established</p>
+<p class="text-[11px] text-on-surface-variant font-mono">STUN Binding: 0.8ms</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Technical Features & Architecture Highlights Section -->
+
+<!-- Clean Minimal Google Meet-style Footer -->
+<footer class="w-full bg-surface-container-lowest py-8 mt-auto">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-tertiary-container"></span>
+<span class="font-medium">University WebRTC Mesh Project</span>
+<span class="text-outline-variant">•</span>
+<span class="font-mono bg-surface-container px-2 py-0.5 rounded">WebSocket Signaling: ws://localhost:3000</span>
+</div>
+<div class="flex items-center gap-6 font-medium">
+<a class="hover:text-primary transition-colors" href="#">Documentation</a>
+<a class="hover:text-primary transition-colors" href="#">Signaling Protocol</a>
+<a class="hover:text-primary transition-colors" href="#">Mesh Specs</a>
+<a class="hover:text-primary transition-colors" href="#">GitHub</a>
+</div>
+</div>
+</footer>
+<!-- Micro-interaction & Dynamic Clock Script -->
+<script>
+    // Live Clock display matching Google Meet's header
+    function updateClock() {
+      const clockEl = document.getElementById('liveClock');
+      if (!clockEl) return;
+      
+      const now = new Date();
+      const options = { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric', 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      };
+      // Format: "Tue, Oct 24 • 10:45 AM"
+      const datePart = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const timePart = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      clockEl.textContent = `${datePart} • ${timePart}`;
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+<script type="module" src="./dist/home.js"></script>
+
+
+</body></html>

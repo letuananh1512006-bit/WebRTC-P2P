@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WebRTC P2P Meeting</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            surface: "#f8fafd",
+            background: "#f0f4f9",
+            "surface-container": "#e9eef6",
+            "surface-container-high": "#e1e7f0",
+            "surface-card": "#ffffff",
+            primary: "#1a73e8",
+            "primary-hover": "#1557b0",
+            "primary-light": "#e8f0fe",
+            "on-surface": "#1f1f1f",
+            "on-surface-variant": "#5f6368",
+            "active-speaker": "#1e8e3e",
+            error: "#ea4335",
+            "error-hover": "#d93025"
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-sans flex flex-col h-screen select-none">
+<!-- 1. HEADER (Compact, Google Meet Minimalist Style) -->
+<header class="h-14 px-6 flex items-center justify-between bg-surface/90 backdrop-blur-md border-b border-surface-container z-30 shrink-0">
+<!-- Left: Logo & Room Pill -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary-light text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">videocam</span>
+</div>
+<span class="font-semibold text-[17px] text-on-surface tracking-tight">WebRTC P2P</span>
+</div>
+<div class="h-4 w-px bg-surface-container-high mx-1 hidden sm:block"></div>
+<div class="flex items-center gap-1.5 bg-surface-container px-3 py-1 rounded-full text-xs font-medium text-on-surface">
+<span id="room-id-label">mesh-lab-401</span>
+<button class="w-5 h-5 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full" id="copy-room-btn" title="Copy room link">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Center/Right: Connection Status & Controls -->
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center gap-2 bg-surface-card px-3 py-1 rounded-full border border-surface-container text-xs font-medium text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-active-speaker animate-pulse"></span>
+<span class="text-on-surface font-medium">Connected</span>
+<span class="text-surface-container-high">•</span>
+<span id="participant-count">1 participant</span>
+</div>
+<button class="w-8 h-8 rounded-full text-on-surface-variant hover:bg-surface-container flex items-center justify-center transition-colors" id="header-settings-btn" title="Settings">
+<span class="material-symbols-outlined text-[19px]">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold shadow-sm" id="header-initials">
+        AR
+      </div>
+</div>
+</header>
+<!-- 2. MAIN VIEWPORT (Hero Video Area + Embedded Alternate Modes) -->
+<main class="flex-1 p-3 md:p-5 flex items-center justify-center relative overflow-hidden">
+<!-- VIEW A: STANDARD 3-PARTICIPANT GALLERY GRID -->
+<div class="w-full h-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 items-center justify-center transition-all duration-300" id="view-gallery">
+<!-- Video 1: Alex Rivera (You) -->
+<div class="relative w-full h-full max-h-[78vh] bg-surface-card rounded-2xl overflow-hidden shadow-sm border border-surface-container flex items-center justify-center group aspect-video lg:aspect-auto" id="local-tile">
+<video autoplay="" class="w-full h-full object-cover -scale-x-100" id="local-video" muted="" playsinline=""></video>
+<!-- Bottom Name Label -->
+<div class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-2 text-white text-xs font-medium tracking-wide">
+<span class="material-symbols-outlined text-[16px] text-green-400" id="alex-mic-indicator">mic</span>
+<span id="local-name">Alex Rivera (You)</span>
+</div>
+</div>
+<!-- Video 2: Dr. Elena Vance (Active Speaker) -->
+<div class="mock-remote-tile relative w-full h-full max-h-[78vh] bg-surface-card rounded-2xl overflow-hidden shadow-sm border-2 border-active-speaker flex items-center justify-center group aspect-video lg:aspect-auto">
+<img alt="Dr. Elena Vance" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNgIAf-BEjQEADuQ-EjxfU-raHi9lScspz1bR9C3ldIbJ3U5ebZ00oMql76HBrtytg1iTuf9KAtx-I3dY5WV6z2cfLkINTH60O6lvRdkBMXdoodGD3Ku4KCNmsWoRS88UiIsKSQq9ianBYDovRK_QadwBL_knCN0f7IN5DPMbfPDpufYGKrECfKe5TZAq-JcyWAcQhJmRgu0-zg79zGm2_euCFl5LeyG_MuDGbgFL6i5iYZiumlZL5"/>
+<!-- Bottom Name Label & Active Speaker Indicator -->
+<div class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-2 text-white text-xs font-medium tracking-wide">
+<span class="material-symbols-outlined text-[16px] text-green-400">mic</span>
+<span>Dr. Elena Vance</span>
+</div>
+<!-- Active Speaker Glow Pill (Subtle & clean) -->
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-medium flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+<span>Speaking</span>
+</div>
+</div>
+<!-- Video 3: Faculty Lab Terminal -->
+<div class="mock-remote-tile relative w-full h-full max-h-[78vh] bg-surface-card rounded-2xl overflow-hidden shadow-sm border border-surface-container flex items-center justify-center group aspect-video lg:aspect-auto md:col-span-2 lg:col-span-1">
+<img alt="Faculty Lab Terminal" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACX4Ax4FN4oFcfwZKTe8-KRlOz4Z2gVGq2jI1Uvb49fL_i3lB8_11dGuIgWSQfShRIQf4ja3C5nM2XR2rAmY2n4csgr-mP8Wt8HptbO5D3cL0tVAZhCd50btTqNNCxUV7nTwvpf74MqEW4jFI-bqgS5eVUMwdTZPOP1C3Kpd24QGI8CgomU7N5wgBRwmfADos_o3WCGYsndz-5XcE0tWhVTg9sDCSojpCN3BBLMqXL4qypI-s_309d"/>
+<!-- Bottom Name Label & Mute Indicator -->
+<div class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-2 text-white text-xs font-medium tracking-wide">
+<span class="material-symbols-outlined text-[16px] text-red-400">mic_off</span>
+<span>Faculty Lab Terminal #04</span>
+</div>
+</div>
+</div>
+<!-- VIEW B: PRESENTATION / SCREEN SHARING MODE (Hidden by default) -->
+<div class="hidden w-full h-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 items-stretch justify-center transition-all duration-300" id="view-screenshare">
+<!-- Large Presentation Canvas -->
+<div class="flex-1 bg-surface-card rounded-2xl border border-surface-container shadow-sm overflow-hidden flex flex-col relative">
+<div class="h-12 px-4 bg-surface flex items-center justify-between border-b border-surface-container">
+<div class="flex items-center gap-2 text-sm font-medium text-on-surface">
+<span class="material-symbols-outlined text-primary text-[20px]">present_to_all</span>
+<span>You are sharing your screen</span>
+</div>
+<button class="px-3 py-1 rounded-lg bg-error hover:bg-error-hover text-white text-xs font-medium transition-colors flex items-center gap-1.5" id="btn-stop-presenting">
+<span class="material-symbols-outlined text-[16px]">stop_screen_share</span>
+<span>Stop sharing</span>
+</button>
+</div>
+<!-- Mock Screen Content -->
+<div class="flex-1 bg-[#1e1e2e] p-6 flex flex-col justify-center items-center font-mono text-sm text-[#cdd6f4] relative overflow-hidden select-none">
+<div class="w-full max-w-xl bg-[#181825] p-5 rounded-xl border border-white/10 shadow-lg text-left">
+<div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 text-xs text-neutral-400">
+<span class="w-3 h-3 rounded-full bg-red-400/80"></span>
+<span class="w-3 h-3 rounded-full bg-yellow-400/80"></span>
+<span class="w-3 h-3 rounded-full bg-green-400/80"></span>
+<span class="ml-2">meeting-room.ts</span>
+</div>
+<p class="text-pink-400">const <span class="text-blue-300">roomSession</span> = <span class="text-purple-300">new</span> WebRTCConnection({</p>
+<p class="pl-4 text-emerald-300">mode: 'mesh-direct',</p>
+<p class="pl-4 text-emerald-300">audio: true, video: true</p>
+<p class="text-pink-400">});</p>
+<p class="mt-3 text-xs text-neutral-400">// Screen stream is broadcast directly to peers</p>
+</div>
+</div>
+</div>
+<!-- Right Strip Thumbnail List -->
+<div class="w-full lg:w-64 flex flex-row lg:flex-col gap-3 shrink-0">
+<div class="relative flex-1 lg:flex-initial aspect-video rounded-xl overflow-hidden bg-surface-card border border-surface-container">
+<img alt="Alex" class="w-full h-full object-cover -scale-x-100" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhkIO8lXSr4qaUaZWkf8bdr1ORTriaExFk0lYYsgQXbv-a-cdqrjcwG5sVZfM7CeHFBplQkSA9Ja7hDmdwZFNGZrkkNe3EF_n_lCek4z8_yy4wcUdOZQWqD-ytOUAgvAHf1zv42DbSAQ_7HXKK9vU-z_pBVuMpMp_7wh4U4iyQKLoxXOJmg0LxlqAV5n8bC1DQdSWxxy3vnTkdi9pZa_Bn6SOw6O9Mog-NgAK3TSOtp1MBF_gAGv__"/>
+<span class="absolute bottom-1.5 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded">You</span>
+</div>
+<div class="relative flex-1 lg:flex-initial aspect-video rounded-xl overflow-hidden bg-surface-card border-2 border-active-speaker">
+<img alt="Elena" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNgIAf-BEjQEADuQ-EjxfU-raHi9lScspz1bR9C3ldIbJ3U5ebZ00oMql76HBrtytg1iTuf9KAtx-I3dY5WV6z2cfLkINTH60O6lvRdkBMXdoodGD3Ku4KCNmsWoRS88UiIsKSQq9ianBYDovRK_QadwBL_knCN0f7IN5DPMbfPDpufYGKrECfKe5TZAq-JcyWAcQhJmRgu0-zg79zGm2_euCFl5LeyG_MuDGbgFL6i5iYZiumlZL5"/>
+<span class="absolute bottom-1.5 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded">Dr. Elena Vance</span>
+</div>
+<div class="relative flex-1 lg:flex-initial aspect-video rounded-xl overflow-hidden bg-surface-card border border-surface-container">
+<img alt="Terminal" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACX4Ax4FN4oFcfwZKTe8-KRlOz4Z2gVGq2jI1Uvb49fL_i3lB8_11dGuIgWSQfShRIQf4ja3C5nM2XR2rAmY2n4csgr-mP8Wt8HptbO5D3cL0tVAZhCd50btTqNNCxUV7nTwvpf74MqEW4jFI-bqgS5eVUMwdTZPOP1C3Kpd24QGI8CgomU7N5wgBRwmfADos_o3WCGYsndz-5XcE0tWhVTg9sDCSojpCN3BBLMqXL4qypI-s_309d"/>
+<span class="absolute bottom-1.5 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded">Lab Terminal</span>
+</div>
+</div>
+</div>
+<!-- VIEW C: WHITEBOARD COLLABORATION MODE (Hidden by default) -->
+<div class="hidden w-full h-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 items-stretch justify-center transition-all duration-300" id="view-whiteboard">
+<!-- Whiteboard Main Workspace -->
+<div class="flex-1 bg-surface-card rounded-2xl border border-surface-container shadow-sm overflow-hidden flex flex-col relative">
+<!-- Top Toolbar -->
+<div class="h-14 px-4 bg-surface flex flex-wrap items-center justify-between border-b border-surface-container gap-2">
+<div class="flex items-center gap-1.5">
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors" id="wb-tool-select" title="Select">
+<span class="material-symbols-outlined text-[18px]">near_me</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary text-white shadow-sm transition-colors" id="wb-tool-pen" title="Pen">
+<span class="material-symbols-outlined text-[18px]">stylus</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors" id="wb-tool-eraser" title="Eraser">
+<span class="material-symbols-outlined text-[18px]">ink_eraser</span>
+</button>
+<div class="h-4 w-px bg-surface-container-high mx-1"></div>
+<div class="flex items-center gap-1.5" id="wb-colors">
+<button class="w-5 h-5 rounded-full bg-neutral-900 ring-2 ring-primary ring-offset-1" data-color="#1f1f1f"></button>
+<button class="w-5 h-5 rounded-full bg-primary" data-color="#1a73e8"></button>
+<button class="w-5 h-5 rounded-full bg-error" data-color="#ea4335"></button>
+<button class="w-5 h-5 rounded-full bg-active-speaker" data-color="#1e8e3e"></button>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container" id="wb-undo-btn" title="Undo">
+<span class="material-symbols-outlined text-[18px]">undo</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container" id="wb-redo-btn" title="Redo">
+<span class="material-symbols-outlined text-[18px]">redo</span>
+</button>
+<button class="px-2.5 py-1 text-xs text-error hover:bg-red-50 rounded-lg font-medium transition-colors" id="wb-clear-btn">
+              Clear
+            </button>
+<div class="h-4 w-px bg-surface-container-high mx-1"></div>
+<button class="px-3 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-medium text-on-surface transition-colors flex items-center gap-1" id="btn-close-whiteboard">
+<span class="material-symbols-outlined text-[16px]">grid_view</span>
+<span>Back to video</span>
+</button>
+</div>
+</div>
+<!-- Canvas -->
+<div class="flex-1 relative bg-white cursor-crosshair overflow-hidden">
+<canvas class="w-full h-full block" id="main-whiteboard-canvas"></canvas>
+</div>
+</div>
+<!-- Right Strip Thumbnail List -->
+<div class="w-full lg:w-64 flex flex-row lg:flex-col gap-3 shrink-0">
+<div class="relative flex-1 lg:flex-initial aspect-video rounded-xl overflow-hidden bg-surface-card border border-surface-container">
+<img alt="Alex" class="w-full h-full object-cover -scale-x-100" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhkIO8lXSr4qaUaZWkf8bdr1ORTriaExFk0lYYsgQXbv-a-cdqrjcwG5sVZfM7CeHFBplQkSA9Ja7hDmdwZFNGZrkkNe3EF_n_lCek4z8_yy4wcUdOZQWqD-ytOUAgvAHf1zv42DbSAQ_7HXKK9vU-z_pBVuMpMp_7wh4U4iyQKLoxXOJmg0LxlqAV5n8bC1DQdSWxxy3vnTkdi9pZa_Bn6SOw6O9Mog-NgAK3TSOtp1MBF_gAGv__"/>
+<span class="absolute bottom-1.5 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded">You</span>
+</div>
+<div class="relative flex-1 lg:flex-initial aspect-video rounded-xl overflow-hidden bg-surface-card border-2 border-active-speaker">
+<img alt="Elena" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNgIAf-BEjQEADuQ-EjxfU-raHi9lScspz1bR9C3ldIbJ3U5ebZ00oMql76HBrtytg1iTuf9KAtx-I3dY5WV6z2cfLkINTH60O6lvRdkBMXdoodGD3Ku4KCNmsWoRS88UiIsKSQq9ianBYDovRK_QadwBL_knCN0f7IN5DPMbfPDpufYGKrECfKe5TZAq-JcyWAcQhJmRgu0-zg79zGm2_euCFl5LeyG_MuDGbgFL6i5iYZiumlZL5"/>
+<span class="absolute bottom-1.5 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded">Dr. Elena Vance</span>
+</div>
+<div class="relative flex-1 lg:flex-initial aspect-video rounded-xl overflow-hidden bg-surface-card border border-surface-container">
+<img alt="Terminal" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACX4Ax4FN4oFcfwZKTe8-KRlOz4Z2gVGq2jI1Uvb49fL_i3lB8_11dGuIgWSQfShRIQf4ja3C5nM2XR2rAmY2n4csgr-mP8Wt8HptbO5D3cL0tVAZhCd50btTqNNCxUV7nTwvpf74MqEW4jFI-bqgS5eVUMwdTZPOP1C3Kpd24QGI8CgomU7N5wgBRwmfADos_o3WCGYsndz-5XcE0tWhVTg9sDCSojpCN3BBLMqXL4qypI-s_309d"/>
+<span class="absolute bottom-1.5 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded">Lab Terminal</span>
+</div>
+</div>
+</div>
+</main>
+<!-- 3. BOTTOM CONTROL BAR (Exactly ONE Clean Floating/Docked Bar) -->
+<footer class="h-20 px-6 flex items-center justify-between bg-surface border-t border-surface-container z-30 shrink-0">
+<!-- Bottom Left: Meeting Code / Clock -->
+<div class="hidden sm:flex items-center gap-3 w-1/4">
+<span class="text-sm font-medium text-on-surface" id="current-clock">10:42 AM</span>
+<span class="text-surface-container-high">|</span>
+<span class="text-sm text-on-surface-variant font-medium" id="room-id-footer">mesh-lab-401</span>
+</div>
+<!-- Center: Primary In-Call Controls -->
+<div class="flex items-center justify-center gap-3 flex-1 sm:flex-initial">
+<!-- Mic Button -->
+<button class="w-12 h-12 rounded-full bg-surface-card border border-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-all shadow-sm" id="btn-toggle-mic" title="Toggle microphone">
+<span class="material-symbols-outlined text-[22px]">mic</span>
+</button>
+<!-- Camera Button -->
+<button class="w-12 h-12 rounded-full bg-surface-card border border-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-all shadow-sm" id="btn-toggle-cam" title="Toggle camera">
+<span class="material-symbols-outlined text-[22px]">videocam</span>
+</button>
+<!-- Share Screen Button -->
+<button class="w-12 h-12 rounded-full bg-surface-card border border-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-all shadow-sm" id="btn-toggle-share" title="Share screen">
+<span class="material-symbols-outlined text-[22px]">present_to_all</span>
+</button>
+<!-- Whiteboard Button -->
+<button class="w-12 h-12 rounded-full bg-surface-card border border-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-all shadow-sm" id="btn-toggle-whiteboard" title="Whiteboard">
+<span class="material-symbols-outlined text-[22px]">draw</span>
+</button>
+<!-- More Options Button -->
+<button class="w-12 h-12 rounded-full bg-surface-card border border-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-all shadow-sm" id="btn-more-options" title="More options">
+<span class="material-symbols-outlined text-[22px]">more_vert</span>
+</button>
+<!-- Prominent Red Leave Meeting Button -->
+<button class="h-12 px-6 rounded-full bg-error hover:bg-error-hover text-white flex items-center gap-2 font-medium text-sm transition-all shadow-sm" id="btn-leave-call" title="Leave meeting">
+<span class="material-symbols-outlined text-[20px]">call_end</span>
+<span class="hidden md:inline">Leave</span>
+</button>
+</div>
+<!-- Bottom Right: Utility Controls (Details, Participants, Chat) -->
+<div class="flex items-center justify-end gap-1 sm:gap-2 w-1/4">
+<button class="w-10 h-10 rounded-full text-on-surface-variant hover:bg-surface-container flex items-center justify-center transition-colors" title="Meeting details">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</button>
+<button class="w-10 h-10 rounded-full text-on-surface-variant hover:bg-surface-container flex items-center justify-center transition-colors relative" title="People">
+<span class="material-symbols-outlined text-[20px]">people</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary"></span>
+</button>
+<button class="w-10 h-10 rounded-full text-on-surface-variant hover:bg-surface-container flex items-center justify-center transition-colors" title="In-call chat">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+</button>
+</div>
+</footer>
+<!-- Toast Notification (Room Link Copied) -->
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-on-surface text-white px-4 py-2 rounded-full text-xs font-medium opacity-0 pointer-events-none transition-all duration-200 shadow-md flex items-center gap-2 z-50" id="toast-notification">
+<span class="material-symbols-outlined text-[16px] text-green-400">check_circle</span>
+<span>Meeting link copied to clipboard</span>
+</div>
+<!-- Settings Modal (Google Meet Style Clean Dialog) -->
+<div class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4" id="settings-modal">
+<div class="bg-surface-card rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-surface-container">
+<div class="p-5 border-b border-surface-container flex items-center justify-between">
+<h3 class="font-semibold text-base text-on-surface">Audio &amp; Video Settings</h3>
+<button class="w-8 h-8 rounded-full text-on-surface-variant hover:bg-surface-container flex items-center justify-center" id="close-modal-btn">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<div class="p-5 space-y-4 text-sm">
+<div>
+<label class="block text-xs font-semibold text-on-surface-variant mb-1.5">Microphone</label>
+<select class="w-full bg-surface text-on-surface rounded-xl border border-surface-container px-3 py-2 text-sm outline-none focus:border-primary">
+<option>Built-in Microphone (MacBook Pro)</option>
+<option>External USB Microphone</option>
+</select>
+</div>
+<div>
+<label class="block text-xs font-semibold text-on-surface-variant mb-1.5">Camera</label>
+<select class="w-full bg-surface text-on-surface rounded-xl border border-surface-container px-3 py-2 text-sm outline-none focus:border-primary">
+<option>FaceTime HD Camera 1080p</option>
+<option>External WebCam</option>
+</select>
+</div>
+<div class="pt-2 flex items-center justify-between">
+<span class="text-xs text-on-surface-variant font-medium">Noise Cancellation</span>
+<input checked="" class="rounded text-primary focus:ring-primary h-4 w-4" type="checkbox"/>
+</div>
+</div>
+<div class="p-4 bg-surface border-t border-surface-container flex justify-end">
+<button class="px-4 py-1.5 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors" id="save-modal-btn">
+          Done
+        </button>
+</div>
+</div>
+</div>
+<!-- Pure Vanilla JavaScript View Controller & Interactions -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Clock sync
+      const clockEl = document.getElementById('current-clock');
+      function updateTime() {
+        const now = new Date();
+        if (clockEl) {
+          clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+      }
+      updateTime();
+      setInterval(updateTime, 30000);
+
+      // Views
+      const viewGallery = document.getElementById('view-gallery');
+      const viewScreenShare = document.getElementById('view-screenshare');
+      const viewWhiteboard = document.getElementById('view-whiteboard');
+
+      // Buttons
+      const btnShare = document.getElementById('btn-toggle-share');
+      const btnWhiteboard = document.getElementById('btn-toggle-whiteboard');
+      const btnStopPresenting = document.getElementById('btn-stop-presenting');
+      const btnCloseWhiteboard = document.getElementById('btn-close-whiteboard');
+
+      function switchView(target) {
+        // Reset all views
+        viewGallery.classList.add('hidden');
+        viewScreenShare.classList.add('hidden');
+        viewWhiteboard.classList.add('hidden');
+
+        // Reset control states
+        btnShare.classList.remove('bg-primary-light', 'text-primary', 'border-primary');
+        btnWhiteboard.classList.remove('bg-primary-light', 'text-primary', 'border-primary');
+
+        if (target === 'screenshare') {
+          viewScreenShare.classList.remove('hidden');
+          btnShare.classList.add('bg-primary-light', 'text-primary', 'border-primary');
+        } else if (target === 'whiteboard') {
+          viewWhiteboard.classList.remove('hidden');
+          btnWhiteboard.classList.add('bg-primary-light', 'text-primary', 'border-primary');
+          setTimeout(initCanvasDimensions, 50);
+        } else {
+          viewGallery.classList.remove('hidden');
+        }
+      }
+
+      // Mode toggles
+      btnShare.addEventListener('click', () => {
+        if (!viewScreenShare.classList.contains('hidden')) {
+          switchView('gallery');
+        } else {
+          switchView('screenshare');
+        }
+      });
+
+      btnStopPresenting.addEventListener('click', () => switchView('gallery'));
+
+      btnWhiteboard.addEventListener('click', () => {
+        if (!viewWhiteboard.classList.contains('hidden')) {
+          switchView('gallery');
+        } else {
+          switchView('whiteboard');
+        }
+      });
+
+      btnCloseWhiteboard.addEventListener('click', () => switchView('gallery'));
+
+      // Settings Modal
+      const settingsModal = document.getElementById('settings-modal');
+      const openSettingsBtn = document.getElementById('header-settings-btn');
+      const moreOptionsBtn = document.getElementById('btn-more-options');
+      const closeModalBtn = document.getElementById('close-modal-btn');
+      const saveModalBtn = document.getElementById('save-modal-btn');
+
+      const toggleModal = (show) => {
+        if (show) settingsModal.classList.remove('hidden');
+        else settingsModal.classList.add('hidden');
+      };
+
+      openSettingsBtn?.addEventListener('click', () => toggleModal(true));
+      moreOptionsBtn?.addEventListener('click', () => toggleModal(true));
+      closeModalBtn?.addEventListener('click', () => toggleModal(false));
+      saveModalBtn?.addEventListener('click', () => toggleModal(false));
+
+      // Whiteboard Drawing Canvas logic
+      const canvas = document.getElementById('main-whiteboard-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+      let tool = 'pen';
+      let color = '#1f1f1f';
+      let strokeWidth = 3;
+      let undoHistory = [];
+      let redoHistory = [];
+
+      function initCanvasDimensions() {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        if (imgData.width > 0) ctx.putImageData(imgData, 0, 0);
+      }
+
+      window.addEventListener('resize', initCanvasDimensions);
+
+      function saveCanvasState() {
+        undoHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        if (undoHistory.length > 20) undoHistory.shift();
+        redoHistory = [];
+      }
+
+      function getCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+      }
+
+      canvas.addEventListener('mousedown', (e) => {
+        if (tool === 'select') return;
+        saveCanvasState();
+        drawing = true;
+        const coords = getCoords(e);
+        ctx.beginPath();
+        ctx.moveTo(coords.x, coords.y);
+        ctx.lineWidth = tool === 'eraser' ? 24 : strokeWidth;
+        ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!drawing || tool === 'select') return;
+        const coords = getCoords(e);
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+      });
+
+      ['mouseup', 'mouseleave'].forEach(evt => {
+        canvas.addEventListener(evt, () => {
+          if (drawing) {
+            drawing = false;
+            ctx.closePath();
+          }
+        });
+      });
+
+      // Canvas Tool Handlers
+      const toolPen = document.getElementById('wb-tool-pen');
+      const toolEraser = document.getElementById('wb-tool-eraser');
+      const toolSelect = document.getElementById('wb-tool-select');
+
+      function setTool(newTool) {
+        tool = newTool;
+        [toolPen, toolEraser, toolSelect].forEach(btn => {
+          btn.classList.remove('bg-primary', 'text-white', 'shadow-sm');
+          btn.classList.add('text-on-surface-variant');
+        });
+        if (newTool === 'pen') {
+          toolPen.classList.add('bg-primary', 'text-white', 'shadow-sm');
+          toolPen.classList.remove('text-on-surface-variant');
+        } else if (newTool === 'eraser') {
+          toolEraser.classList.add('bg-primary', 'text-white', 'shadow-sm');
+          toolEraser.classList.remove('text-on-surface-variant');
+        } else if (newTool === 'select') {
+          toolSelect.classList.add('bg-primary', 'text-white', 'shadow-sm');
+          toolSelect.classList.remove('text-on-surface-variant');
+        }
+      }
+
+      toolPen?.addEventListener('click', () => setTool('pen'));
+      toolEraser?.addEventListener('click', () => setTool('eraser'));
+      toolSelect?.addEventListener('click', () => setTool('select'));
+
+      // Palette
+      const colorBtns = document.querySelectorAll('#wb-colors button');
+      colorBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          color = btn.getAttribute('data-color') || '#1f1f1f';
+          colorBtns.forEach(b => b.classList.remove('ring-2', 'ring-primary', 'ring-offset-1'));
+          btn.classList.add('ring-2', 'ring-primary', 'ring-offset-1');
+          setTool('pen');
+        });
+      });
+
+      // Undo / Redo / Clear
+      document.getElementById('wb-undo-btn')?.addEventListener('click', () => {
+        if (undoHistory.length > 0) {
+          redoHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+          const previous = undoHistory.pop();
+          ctx.putImageData(previous, 0, 0);
+        }
+      });
+
+      document.getElementById('wb-redo-btn')?.addEventListener('click', () => {
+        if (redoHistory.length > 0) {
+          undoHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+          const next = redoHistory.pop();
+          ctx.putImageData(next, 0, 0);
+        }
+      });
+
+      document.getElementById('wb-clear-btn')?.addEventListener('click', () => {
+        saveCanvasState();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      });
+    });
+  </script>
+<script type="module" src="./dist/meeting.js"></script>
+</body></html>
